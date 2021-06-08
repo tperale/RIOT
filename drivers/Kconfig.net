@@ -18,6 +18,7 @@ rsource "rn2xx3/Kconfig"
 rsource "slipdev/Kconfig"
 rsource "sx126x/Kconfig"
 rsource "sx127x/Kconfig"
+rsource "sx128x/Kconfig"
 rsource "tja1042/Kconfig"
 source "$(RIOTCPU)/nrf52/radio/nrf802154/Kconfig"
 endmenu # Network Device Drivers

@@ -247,6 +247,9 @@ PSEUDOMODULES += llcc68
 PSEUDOMODULES += sx1272
 PSEUDOMODULES += sx1276
 
+# include variants of SX128X drivers as pseudo modules
+PSEUDOMODULES += sx1280
+
 # include variants of SHT1X drivers as pseudo modules
 PSEUDOMODULES += sht10
 PSEUDOMODULES += sht11

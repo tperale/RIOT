@@ -159,6 +159,10 @@ ifneq (,$(filter sx127%,$(USEMODULE)))
   USEMODULE += sx127x
 endif
 
+ifneq (,$(filter sx128%,$(USEMODULE)))
+  USEMODULE += sx128x
+endif
+
 ifneq (,$(filter tmp00%,$(USEMODULE)))
   USEMODULE += tmp00x
 endif
