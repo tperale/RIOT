@@ -242,7 +242,7 @@ void sx128x_cmd_set_modulation_params(sx128x_t *dev, uint8_t param1, uint8_t par
             }
             sx128x_cmd_burst(dev, SX128X_CMD_SET_MODULATION_PARAMS, params, 3, NULL, 0);
             if (sf_reg) {
-                sx128x_reg_write_burst(dev, 0x925, &sf_reg, 1);
+                /* sx128x_reg_write_burst(dev, 0x925, &sf_reg, 1); */
             }
             return;
         default:
@@ -475,10 +475,10 @@ void sx128x_set_tx(sx128x_t *dev)
     switch (dev->settings.modem) {
         case SX128X_PACKET_TYPE_LORA:
         {
-            sx128x_cmd_set_dio_irq_params(dev, SX128X_IRQ_REG_TX_DONE, SX128X_IRQ_REG_RX_TX_TIMEOUT, 0);
+            /* sx128x_cmd_set_dio_irq_params(dev, SX128X_IRQ_REG_TX_DONE, SX128X_IRQ_REG_RX_TX_TIMEOUT, 0); */
             /* sx128x_cmd_set_dio_irq_params(dev, 0xFFFF, 0xFFFF, 0xFFFF); */
+            break;
         }
-        break;
         default:
             DEBUG("[sx128x] Unsupported packet type\n");
             break;

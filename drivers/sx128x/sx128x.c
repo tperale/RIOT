@@ -176,17 +176,24 @@ void sx128x_init_radio_settings(sx128x_t *dev) {
   /* sx128x_cmd_set_buffer_base_address(dev, 0, 0); */
   /* sx128x_set_tx_power(dev, SX128X_RADIO_TX_POWER); */
 
-  sx128x_set_bandwidth(dev, CONFIG_LORA24_BW_DEFAULT);
-  sx128x_set_spreading_factor(dev, CONFIG_LORA24_SF_DEFAULT);
-  sx128x_set_coding_rate(dev, CONFIG_LORA24_CR_DEFAULT);
-  sx128x_set_crc(dev, LORA24_PAYLOAD_CRC_ON_DEFAULT);
-  sx128x_set_fixed_header_len_mode(
-      dev,
-      IS_ACTIVE(CONFIG_LORA24_FIXED_HEADER_LEN_MODE_DEFAULT) ? true : false);
-  sx128x_set_iq_invert(
-      dev, IS_ACTIVE(CONFIG_LORA24_IQ_INVERTED_DEFAULT) ? true : false);
-  sx128x_set_payload_length(dev, CONFIG_LORA24_PAYLOAD_LENGTH_DEFAULT);
-  sx128x_set_preamble_length(dev, CONFIG_LORA24_PREAMBLE_LENGTH_DEFAULT);
+
+  sx128x_cmd_set_modulation_params(dev, CONFIG_LORA24_SF_DEFAULT, CONFIG_LORA24_BW_DEFAULT, CONFIG_LORA24_CR_DEFAULT);
+
+  /* sx128x_set_bandwidth(dev, CONFIG_LORA24_BW_DEFAULT); */
+  /* sx128x_set_spreading_factor(dev, CONFIG_LORA24_SF_DEFAULT); */
+  /* sx128x_set_coding_rate(dev, CONFIG_LORA24_CR_DEFAULT); */
+
+  sx128x_cmd_set_packet_params(dev, CONFIG_LORA24_PREAMBLE_LENGTH_DEFAULT, IS_ACTIVE(CONFIG_LORA24_FIXED_HEADER_LEN_MODE_DEFAULT) ? true : false, 0, 
+          LORA24_PAYLOAD_CRC_ON_DEFAULT, IS_ACTIVE(CONFIG_LORA24_IQ_INVERTED_DEFAULT) ? true : false, 0, 0);
+
+  /* sx128x_set_crc(dev, LORA24_PAYLOAD_CRC_ON_DEFAULT); */
+  /* sx128x_set_fixed_header_len_mode( */
+  /*     dev, */
+  /*     IS_ACTIVE(CONFIG_LORA24_FIXED_HEADER_LEN_MODE_DEFAULT) ? true : false); */
+  /* sx128x_set_iq_invert( */
+  /*     dev, IS_ACTIVE(CONFIG_LORA24_IQ_INVERTED_DEFAULT) ? true : false); */
+  /* sx128x_set_preamble_length(dev, CONFIG_LORA24_PREAMBLE_LENGTH_DEFAULT); */
+  /* sx128x_set_payload_length(dev, CONFIG_LORA24_PAYLOAD_LENGTH_DEFAULT); */
 
   sx128x_cmd_set_frequency(dev, SX128X_CHANNEL_DEFAULT);
   sx128x_cmd_set_buffer_base_address(dev, 0, 0);
@@ -286,7 +293,7 @@ static int _init_gpios(sx128x_t *dev) {
     }
   } else {
     /* if frequency hopping is enabled, DIO2 pin must be defined */
-    assert(!IS_ACTIVE(CONFIG_LORA_FREQUENCY_HOPPING_DEFAULT));
+    /* assert(!IS_ACTIVE(CONFIG_LORA_FREQUENCY_HOPPING_DEFAULT)); */
   }
 
   /* check if DIO3 pin is defined */

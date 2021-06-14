@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
+#include "periph/spi.h"
 #include "ztimer.h"
 
 #include "net/lora.h"
@@ -41,6 +42,11 @@
 
 #define SX128X_SPI_SPEED    (SPI_CLK_1MHZ)
 #define SX128X_SPI_MODE     (SPI_MODE_0)
+
+
+static inline void sx128x_wait_busy(const sx128x_t *dev) {
+    while (gpio_read(dev->params.busy_pin) > 1);
+}
 
 
 int sx128x_check_version(const sx128x_t *dev)
@@ -62,46 +68,78 @@ uint8_t sx128x_reg_read(const sx128x_t *dev, uint16_t addr)
     return sx128x_reg_read_burst(dev, addr);
 }
 
+
+
 void sx128x_cmd_burst(const sx128x_t *dev, uint8_t cmd, uint8_t *in, uint8_t in_size, uint8_t *out, uint8_t out_size)
 {
-    /* bool wait = true; */
-    /* bool retry = false; */
-
-    spi_acquire(dev->params.spi, SPI_CS_UNDEF, SX128X_SPI_MODE, SX128X_SPI_SPEED);
+    sx128x_wait_busy(dev);
 
     gpio_clear(dev->params.nss_pin);
-    spi_transfer_bytes(dev->params.spi, SPI_CS_UNDEF, true, &cmd, NULL, 1);
-    if (in_size) {
-        spi_transfer_bytes(dev->params.spi, SPI_CS_UNDEF, out_size ? true : false, in, NULL, in_size);
-    }
-    if (out_size) {
-        spi_transfer_bytes(dev->params.spi, SPI_CS_UNDEF, false, NULL, out, out_size);
 
-        /* switch (*out & SX128X_STATUS_COMMAND_STATUS_MASK) { */
-        /*     case SX128X_STATUS_COMMAND_STATUS_TIMEOUT: */
-        /*         DEBUG("[sx128x] Time out\n"); */
-        /*         retry = true; */
-        /*         wait = false; */
-        /*         break; */
-        /*     case SX128X_STATUS_COMMAND_STATUS_PROCESSING_ERROR: */
-        /*         DEBUG("[sx128x] processing error\n"); */
-        /*         retry = true; */
-        /*         wait = false; */
-        /*         break; */
-        /*     case SX128X_STATUS_COMMAND_STATUS_FAILURE: */
-        /*         DEBUG("[sx128x] failure\n"); */
-        /*         retry = true; */
-        /*         wait = false; */
-        /*         break; */
-        /*     default: */
-        /*         break; */
-        /* } */
-    }
-    gpio_set(dev->params.nss_pin);
+    spi_acquire(dev->params.spi, SPI_CS_UNDEF, SX128X_SPI_MODE, SX128X_SPI_SPEED);
+    spi_transfer_byte(dev->params.spi, SPI_CS_UNDEF, true, cmd);
     spi_release(dev->params.spi);
 
-    while (gpio_read(dev->params.busy_pin) > 1);
+    for (uint8_t i = 0; i < in_size; i++) {
+        spi_acquire(dev->params.spi, SPI_CS_UNDEF, SX128X_SPI_MODE, SX128X_SPI_SPEED);
+        spi_transfer_byte(dev->params.spi, SPI_CS_UNDEF, true, in[i]);
+        spi_release(dev->params.spi);
+    }
+    for (uint8_t i = 0; i < out_size; i++) {
+        spi_acquire(dev->params.spi, SPI_CS_UNDEF, SX128X_SPI_MODE, SX128X_SPI_SPEED);
+        spi_transfer_byte(dev->params.spi, SPI_CS_UNDEF, true, out[i]);
+        spi_release(dev->params.spi);
+    }
+
+    gpio_set(dev->params.nss_pin);
+
+    sx128x_wait_busy(dev);
 }
+
+
+
+/* void sx128x_cmd_burst(const sx128x_t *dev, uint8_t cmd, uint8_t *in, uint8_t in_size, uint8_t *out, uint8_t out_size) */
+/* { */
+/*     /1* bool wait = true; *1/ */
+/*     /1* bool retry = false; *1/ */
+
+/*     sx128x_wait_busy(dev); */
+
+/*     spi_acquire(dev->params.spi, SPI_CS_UNDEF, SX128X_SPI_MODE, SX128X_SPI_SPEED); */
+
+/*     gpio_clear(dev->params.nss_pin); */
+/*     spi_transfer_bytes(dev->params.spi, SPI_CS_UNDEF, true, &cmd, NULL, 1); */
+/*     if (in_size) { */
+/*         spi_transfer_bytes(dev->params.spi, SPI_CS_UNDEF, out_size ? true : false, in, NULL, in_size); */
+/*     } */
+/*     if (out_size) { */
+/*         spi_transfer_bytes(dev->params.spi, SPI_CS_UNDEF, false, NULL, out, out_size); */
+
+/*         /1* switch (*out & SX128X_STATUS_COMMAND_STATUS_MASK) { *1/ */
+/*         /1*     case SX128X_STATUS_COMMAND_STATUS_TIMEOUT: *1/ */
+/*         /1*         DEBUG("[sx128x] Time out\n"); *1/ */
+/*         /1*         retry = true; *1/ */
+/*         /1*         wait = false; *1/ */
+/*         /1*         break; *1/ */
+/*         /1*     case SX128X_STATUS_COMMAND_STATUS_PROCESSING_ERROR: *1/ */
+/*         /1*         DEBUG("[sx128x] processing error\n"); *1/ */
+/*         /1*         retry = true; *1/ */
+/*         /1*         wait = false; *1/ */
+/*         /1*         break; *1/ */
+/*         /1*     case SX128X_STATUS_COMMAND_STATUS_FAILURE: *1/ */
+/*         /1*         DEBUG("[sx128x] failure\n"); *1/ */
+/*         /1*         retry = true; *1/ */
+/*         /1*         wait = false; *1/ */
+/*         /1*         break; *1/ */
+/*         /1*     default: *1/ */
+/*         /1*         break; *1/ */
+/*         /1* } *1/ */
+/*     } */
+/*     gpio_set(dev->params.nss_pin); */
+/*     spi_release(dev->params.spi); */
+
+/*     sx128x_wait_busy(dev); */
+/* } */
 
 void sx128x_reg_write_burst(const sx128x_t *dev, uint16_t reg, uint8_t *buffer,
                             uint8_t size)
@@ -111,7 +149,7 @@ void sx128x_reg_write_burst(const sx128x_t *dev, uint16_t reg, uint8_t *buffer,
 
     gpio_clear(dev->params.nss_pin);
     spi_transfer_byte(dev->params.spi, SPI_CS_UNDEF, true, SX128X_CMD_WRITE_REG);
-    spi_transfer_bytes(dev->params.spi, SPI_CS_UNDEF, true, reg_addr, NULL, size);
+    spi_transfer_bytes(dev->params.spi, SPI_CS_UNDEF, true, reg_addr, NULL, sizeof(uint16_t));
     spi_transfer_bytes(dev->params.spi, SPI_CS_UNDEF, false, buffer, NULL, size);
     gpio_set(dev->params.nss_pin);
 
@@ -126,7 +164,7 @@ uint8_t sx128x_reg_read_burst(const sx128x_t *dev, uint16_t reg)
 
     gpio_clear(dev->params.nss_pin);
     spi_transfer_byte(dev->params.spi, SPI_CS_UNDEF, true, SX128X_CMD_READ_REG);
-    spi_transfer_bytes(dev->params.spi, SPI_CS_UNDEF, true, reg_addr, NULL, 2);
+    spi_transfer_bytes(dev->params.spi, SPI_CS_UNDEF, true, reg_addr, NULL, sizeof(uint16_t));
     spi_transfer_bytes(dev->params.spi, SPI_CS_UNDEF, false, NULL, &ret, 1);
     gpio_set(dev->params.nss_pin);
 

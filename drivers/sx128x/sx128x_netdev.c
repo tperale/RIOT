@@ -84,8 +84,12 @@ static int _send(netdev_t *netdev, const iolist_t *iolist) {
                    SX128X_RADIO_WAKEUP_TIME); /* wait for chip wake up */
     }
 
-    sx128x_set_tx_power(dev, 12);
-    sx128x_cmd_set_buffer_base_address(dev, 0, 0);
+    /* sx128x_set_tx_power(dev, 12); */
+    /* sx128x_cmd_set_buffer_base_address(dev, 0, 0); */
+
+    sx128x_cmd_get_irq_status(dev);
+    sx128x_cmd_clear_irq_status(dev, 0xFFFF);
+    sx128x_cmd_set_dio_irq_params(dev, SX128X_IRQ_REG_TX_DONE, SX128X_IRQ_REG_RX_TX_TIMEOUT, 0);
 
     /* Write payload buffer */
     for (const iolist_t *iol = iolist; iol; iol = iol->iol_next) {
