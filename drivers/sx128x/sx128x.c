@@ -154,7 +154,7 @@ int sx128x_init(sx128x_t *dev) {
 
   sx128x_reset(dev);
 
-  /* sx128x_set_op_mode(dev, SX128X_RF_OPMODE_SLEEP); */
+  sx128x_set_op_mode(dev, SX128X_RF_OPMODE_SLEEP);
 
   if (_init_gpios(dev) < 0) {
     DEBUG("[sx128x] error: failed to initialize GPIOs\n");
@@ -166,73 +166,36 @@ int sx128x_init(sx128x_t *dev) {
 
 void sx128x_init_radio_settings(sx128x_t *dev) {
   DEBUG("[sx128x] initializing radio settings\n");
-  /* sx128x_get_firmware_version(dev); */
   sx128x_cmd_get_status(dev);
   sx128x_cmd_set_regulator_mode(dev, SX128X_REGULATOR_MODE_DC_DC);
   sx128x_set_standby(dev);
   sx128x_cmd_set_packet_type(dev, SX128X_PACKET_TYPE_DEFAULT);
 
-  /* sx128x_cmd_set_frequency(dev, SX128X_CHANNEL_DEFAULT); */
-  /* sx128x_cmd_set_buffer_base_address(dev, 0, 0); */
-  /* sx128x_set_tx_power(dev, SX128X_RADIO_TX_POWER); */
+  sx128x_cmd_set_frequency(dev, SX128X_CHANNEL_DEFAULT);
+  sx128x_cmd_set_buffer_base_address(dev, 0, 0);
+  sx128x_set_tx_power(dev, SX128X_RADIO_TX_POWER);
 
+  sx128x_set_bandwidth(dev, CONFIG_LORA24_BW_DEFAULT);
+  sx128x_set_spreading_factor(dev, CONFIG_LORA24_SF_DEFAULT);
+  sx128x_set_coding_rate(dev, CONFIG_LORA24_CR_DEFAULT);
 
-  sx128x_cmd_set_modulation_params(dev, CONFIG_LORA24_SF_DEFAULT, CONFIG_LORA24_BW_DEFAULT, CONFIG_LORA24_CR_DEFAULT);
-
-  /* sx128x_set_bandwidth(dev, CONFIG_LORA24_BW_DEFAULT); */
-  /* sx128x_set_spreading_factor(dev, CONFIG_LORA24_SF_DEFAULT); */
-  /* sx128x_set_coding_rate(dev, CONFIG_LORA24_CR_DEFAULT); */
-
-  sx128x_cmd_set_packet_params(dev, CONFIG_LORA24_PREAMBLE_LENGTH_DEFAULT, IS_ACTIVE(CONFIG_LORA24_FIXED_HEADER_LEN_MODE_DEFAULT) ? true : false, 0, 
-          LORA24_PAYLOAD_CRC_ON_DEFAULT, IS_ACTIVE(CONFIG_LORA24_IQ_INVERTED_DEFAULT) ? true : false, 0, 0);
-
-  /* sx128x_set_crc(dev, LORA24_PAYLOAD_CRC_ON_DEFAULT); */
-  /* sx128x_set_fixed_header_len_mode( */
-  /*     dev, */
-  /*     IS_ACTIVE(CONFIG_LORA24_FIXED_HEADER_LEN_MODE_DEFAULT) ? true : false); */
-  /* sx128x_set_iq_invert( */
-  /*     dev, IS_ACTIVE(CONFIG_LORA24_IQ_INVERTED_DEFAULT) ? true : false); */
-  /* sx128x_set_preamble_length(dev, CONFIG_LORA24_PREAMBLE_LENGTH_DEFAULT); */
-  /* sx128x_set_payload_length(dev, CONFIG_LORA24_PAYLOAD_LENGTH_DEFAULT); */
+  sx128x_set_crc(dev, LORA24_PAYLOAD_CRC_ON_DEFAULT);
+  sx128x_set_fixed_header_len_mode(
+      dev,
+      IS_ACTIVE(CONFIG_LORA24_FIXED_HEADER_LEN_MODE_DEFAULT) ? true : false);
+  sx128x_set_iq_invert(
+      dev, IS_ACTIVE(CONFIG_LORA24_IQ_INVERTED_DEFAULT) ? true : false);
+  sx128x_set_preamble_length(dev, CONFIG_LORA24_PREAMBLE_LENGTH_DEFAULT);
+  sx128x_set_payload_length(dev, CONFIG_LORA24_PAYLOAD_LENGTH_DEFAULT);
 
   sx128x_cmd_set_frequency(dev, SX128X_CHANNEL_DEFAULT);
   sx128x_cmd_set_buffer_base_address(dev, 0, 0);
   sx128x_set_tx_power(dev, SX128X_RADIO_TX_POWER);
   sx128x_cmd_set_dio_irq_params(dev, 0, 0, 0);
 
-  /* sx128x_set_symbol_timeout(dev, CONFIG_LORA24_SYMBOL_TIMEOUT_DEFAULT); */
-  /* sx128x_set_rx_single(dev, SX128X_RX_SINGLE); */
-  /* sx128x_set_tx_timeout(dev, SX128X_TX_TIMEOUT_DEFAULT); */
-}
-
-uint32_t sx128x_random(sx128x_t *dev) {
-  (void) dev;
-  uint32_t rnd = 0;
-
-  /* Disable LoRa modem interrupts */
-  /* sx128x_reg_write( */
-  /*     dev, SX128X_REG_LR_IRQFLAGSMASK, */
-  /*     SX128X_RF_LORA_IRQFLAGS_RXTIMEOUT | SX128X_RF_LORA_IRQFLAGS_RXDONE | */
-  /*         SX128X_RF_LORA_IRQFLAGS_PAYLOADCRCERROR | */
-  /*         SX128X_RF_LORA_IRQFLAGS_VALIDHEADER | SX128X_RF_LORA_IRQFLAGS_TXDONE | */
-  /*         SX128X_RF_LORA_IRQFLAGS_CADDONE | */
-  /*         SX128X_RF_LORA_IRQFLAGS_FHSSCHANGEDCHANNEL | */
-  /*         SX128X_RF_LORA_IRQFLAGS_CADDETECTED); */
-
-  /* /1* Set radio in continuous reception *1/ */
-  /* sx128x_set_op_mode(dev, SX128X_RF_OPMODE_RECEIVER); */
-
-  /* for (unsigned i = 0; i < 32; i++) { */
-  /*   ztimer_sleep(ZTIMER_MSEC, 1); /1* wait one millisecond *1/ */
-
-  /*   /1* Non-filtered RSSI value reading. Only takes the LSB value *1/ */
-  /*   rnd |= ((uint32_t)sx128x_reg_read(dev, SX128X_REG_LR_RSSIWIDEBAND) & 0x01) */
-  /*          << i; */
-  /* } */
-
-  /* sx128x_set_sleep(dev); */
-
-  return rnd;
+  sx128x_set_symbol_timeout(dev, CONFIG_LORA24_SYMBOL_TIMEOUT_DEFAULT);
+  sx128x_set_rx_single(dev, SX128X_RX_SINGLE);
+  sx128x_set_tx_timeout(dev, SX128X_TX_TIMEOUT_DEFAULT);
 }
 
 /**
@@ -333,6 +296,7 @@ static int _init_spi(sx128x_t *dev) {
   int res;
 
   /* Setup SPI for SX128X */
+  spi_acquire(dev->params.spi, SPI_CS_UNDEF, SPI_MODE_0, SPI_CLK_400KHZ);
   res = spi_init_cs(dev->params.spi, dev->params.nss_pin);
 
 #ifdef MODULE_PERIPH_SPI_GPIO_MODE

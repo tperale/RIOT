@@ -242,7 +242,7 @@ void sx128x_cmd_set_modulation_params(sx128x_t *dev, uint8_t param1, uint8_t par
             }
             sx128x_cmd_burst(dev, SX128X_CMD_SET_MODULATION_PARAMS, params, 3, NULL, 0);
             if (sf_reg) {
-                /* sx128x_reg_write_burst(dev, 0x925, &sf_reg, 1); */
+                sx128x_reg_write_burst(dev, 0x925, &sf_reg, 1);
             }
             return;
         default:
@@ -428,41 +428,6 @@ void sx128x_set_standby(sx128x_t *dev)
     sx128x_set_state(dev,  SX128X_RF_IDLE);
 }
 
-void sx128x_set_rx(sx128x_t *dev)
-{
-    (void)(dev);
-    DEBUG("[sx128x] Set RX\n");
-
-#ifdef SX128X_USE_TX_SWITCH
-    gpio_clear(dev->params.tx_switch_pin);
-#endif
-#ifdef SX128X_USE_RX_SWITCH
-    gpio_set(dev->params.rx_switch_pin);
-#endif
-
-    switch (dev->settings.modem) {
-        case SX128X_PACKET_TYPE_LORA:
-            sx128x_cmd_set_dio_irq_params(dev, SX128X_IRQ_REG_RX_DONE, SX128X_IRQ_REG_RX_TX_TIMEOUT, SX128X_IRQ_REG_HEADER_VALID);
-            break;
-        default:
-            DEBUG("[sx128x] Unsupported packet type\n");
-            return;
-    }
-
-    sx128x_set_state(dev, SX128X_RF_RX_RUNNING);
-    if (dev->settings.lora.rx_timeout != 0) {
-        ztimer_set(ZTIMER_MSEC, &(dev->_internal.rx_timeout_timer), dev->settings.lora.rx_timeout);
-    }
-
-
-    if (dev->settings.lora.flags & SX128X_RX_CONTINUOUS_FLAG) {
-        sx128x_set_op_mode(dev, SX128X_RF_LORA_OPMODE_RECEIVER);
-    } else {
-        sx128x_set_op_mode(dev, SX128X_RF_LORA_OPMODE_RECEIVER_SINGLE);
-    }
-
-}
-
 void sx128x_set_tx(sx128x_t *dev)
 {
 #ifdef SX128X_USE_RX_SWITCH
@@ -472,18 +437,17 @@ void sx128x_set_tx(sx128x_t *dev)
     gpio_set(dev->params.tx_switch_pin);
 #endif
 
+    sx128x_cmd_clear_irq_status(dev, SX128X_IRQ_REG_ALL);
     switch (dev->settings.modem) {
         case SX128X_PACKET_TYPE_LORA:
         {
-            /* sx128x_cmd_set_dio_irq_params(dev, SX128X_IRQ_REG_TX_DONE, SX128X_IRQ_REG_RX_TX_TIMEOUT, 0); */
-            /* sx128x_cmd_set_dio_irq_params(dev, 0xFFFF, 0xFFFF, 0xFFFF); */
+            sx128x_cmd_set_dio_irq_params(dev, SX128X_IRQ_REG_TX_DONE, SX128X_IRQ_REG_RX_TX_TIMEOUT, 0);
             break;
         }
         default:
             DEBUG("[sx128x] Unsupported packet type\n");
             break;
     }
-    sx128x_cmd_clear_irq_status(dev, 0xFFFF);
 
     sx128x_set_state(dev, SX128X_RF_TX_RUNNING);
 
@@ -494,6 +458,43 @@ void sx128x_set_tx(sx128x_t *dev)
 
     /* Put chip into transfer mode */
     sx128x_set_op_mode(dev, SX128X_RF_OPMODE_TRANSMITTER);
+}
+
+void sx128x_set_rx(sx128x_t *dev)
+{
+#ifdef SX128X_USE_TX_SWITCH
+    gpio_clear(dev->params.tx_switch_pin);
+#endif
+#ifdef SX128X_USE_RX_SWITCH
+    gpio_clear(dev->params.rx_switch_pin);
+#endif
+
+    sx128x_cmd_set_buffer_base_address(dev, 0, 0);
+    sx128x_cmd_clear_irq_status(dev, SX128X_IRQ_REG_ALL);
+    switch (dev->settings.modem) {
+        case SX128X_PACKET_TYPE_LORA:
+        {
+            sx128x_cmd_set_dio_irq_params(dev, SX128X_IRQ_REG_RX_DONE, SX128X_IRQ_REG_SYNC_WORD_ERROR, SX128X_IRQ_REG_CRC_ERROR);
+            break;
+        }
+        default:
+            DEBUG("[sx128x] Unsupported packet type\n");
+            break;
+    }
+
+    sx128x_set_state(dev, SX128X_RF_RX_RUNNING);
+
+    /* Start RX timeout timer */
+    if (dev->settings.lora.rx_timeout != 0) {
+        ztimer_set(ZTIMER_MSEC, &(dev->_internal.rx_timeout_timer), dev->settings.lora.rx_timeout);
+    }
+
+    if (dev->settings.lora.flags & SX128X_RX_CONTINUOUS_FLAG) {
+        sx128x_set_op_mode(dev, SX128X_RF_LORA_OPMODE_RECEIVER);
+    }
+    else {
+        sx128x_set_op_mode(dev, SX128X_RF_LORA_OPMODE_RECEIVER_SINGLE);
+    }
 }
 
 uint8_t sx128x_get_max_payload_len(const sx128x_t *dev)
@@ -533,11 +534,11 @@ void sx128x_set_op_mode(const sx128x_t *dev, uint8_t op_mode)
         break;
     case SX128X_RF_OPMODE_RECEIVER:
         DEBUG("[sx128x] Set op mode: RECEIVER\n");
-        sx128x_cmd_set_rx(dev, 0, 0xFFFF);
+        sx128x_cmd_set_rx(dev, 0, 0);
         break;
     case SX128X_RF_OPMODE_TRANSMITTER:
         DEBUG("[sx128x] Set op mode: TRANSMITTER\n");
-        sx128x_cmd_set_tx(dev, 3, 10);
+        sx128x_cmd_set_tx(dev, 0, 0);
         break;
     default:
         DEBUG("[sx128x] Set op mode: UNKNOWN (%d)\n", op_mode);
@@ -594,7 +595,6 @@ void sx128x_set_rx_single(sx128x_t *dev, bool single)
     (void)(dev);
     DEBUG("[sx128x] Set RX single: %d\n", single);
     _set_flag(dev, SX128X_RX_CONTINUOUS_FLAG, !single);
-    // TODO
 }
 
 bool sx128x_get_crc(const sx128x_t *dev)

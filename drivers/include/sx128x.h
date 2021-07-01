@@ -257,20 +257,6 @@ int sx128x_init(sx128x_t *dev);
 void sx128x_init_radio_settings(sx128x_t *dev);
 
 /**
- * @brief   Generates 32 bits random value based on the RSSI readings
- *
- * @attention This function sets the radio in LoRa mode and disables all
- *            interrupts from it. After calling this function either
- *            sx128x_set_rx_config or sx128x_set_tx_config functions must
- *            be called.
- *
- * @param[in] dev                      The sx128x device structure pointer
- *
- * @return random 32 bits value
- */
-uint32_t sx128x_random(sx128x_t *dev);
-
-/**
  * @brief   Start a channel activity detection.
  *
  * @param[in] dev                      The sx128x device descriptor

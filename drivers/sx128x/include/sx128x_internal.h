@@ -46,22 +46,8 @@ extern "C" {
  * @name   Device specific logic level to indicate POR-cycle is active
  * @{
  */
-#if defined(MODULE_SX1272)
-#define SX128X_POR_ACTIVE_LOGIC_LEVEL (1)
-#else /* MODULE_SX1276 */
 #define SX128X_POR_ACTIVE_LOGIC_LEVEL (0)
-#endif
 /** @} */
-
-/**
- * @brief   Check the transceiver version
- *
- * @param[in] dev                      The sx128x device descriptor
- *
- * @return 0 when a valid device version is found
- * @return -1 when no valid device version is found
- */
-int sx128x_check_version(const sx128x_t *dev);
 
 /**
  * @brief   Writes the radio register at specified address.
@@ -131,15 +117,6 @@ void sx128x_write_fifo(const sx128x_t *dev, uint8_t *buffer, uint8_t size);
  * data.
  */
 void sx128x_read_fifo(const sx128x_t *dev, uint8_t *buffer, uint8_t size);
-
-/**
- * @brief   Reads the current RSSI value.
- *
- * @param[in] dev                      The sx128x device descriptor
- *
- * @return current value of RSSI in [dBm]
- */
-int16_t sx128x_read_rssi(const sx128x_t *dev);
 
 #ifdef __cplusplus
 }

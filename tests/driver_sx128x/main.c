@@ -46,14 +46,14 @@
 #include "fmt.h"
 
 #define SX128X_LORA_MSG_QUEUE (16U)
-/* #define SX128X_STACKSIZE (THREAD_STACKSIZE_DEFAULT) */
+#define SX128X_STACKSIZE (THREAD_STACKSIZE_DEFAULT)
 
 #define MSG_TYPE_ISR (0x3456)
 
-/* static char stack[SX128X_STACKSIZE]; */
-/* static kernel_pid_t _recv_pid; */
+static char stack[SX128X_STACKSIZE];
+static kernel_pid_t _recv_pid;
 
-/* static char message[32]; */
+static char message[32];
 static sx128x_t sx128x;
 
 int lora_setup_cmd(int argc, char **argv) {
@@ -504,69 +504,69 @@ static const shell_command_t shell_commands[] = {
     {"reset", "Reset the sx128x device", reset_cmd},
     {NULL, NULL, NULL}};
 
-/* static void _event_cb(netdev_t *dev, netdev_event_t event) { */
-/*   if (event == NETDEV_EVENT_ISR) { */
-/*     msg_t msg; */
+static void _event_cb(netdev_t *dev, netdev_event_t event) {
+  if (event == NETDEV_EVENT_ISR) {
+    msg_t msg;
 
-/*     msg.type = MSG_TYPE_ISR; */
-/*     msg.content.ptr = dev; */
+    msg.type = MSG_TYPE_ISR;
+    msg.content.ptr = dev;
 
-/*     if (msg_send(&msg, _recv_pid) <= 0) { */
-/*       puts("gnrc_netdev: possibly lost interrupt."); */
-/*     } */
-/*   } else { */
-/*     size_t len; */
-/*     netdev_lora_rx_info_t packet_info; */
-/*     switch (event) { */
-/*     case NETDEV_EVENT_RX_STARTED: */
-/*       puts("Data reception started"); */
-/*       break; */
+    if (msg_send(&msg, _recv_pid) <= 0) {
+      puts("gnrc_netdev: possibly lost interrupt.");
+    }
+  } else {
+    size_t len;
+    netdev_lora_rx_info_t packet_info;
+    switch (event) {
+    case NETDEV_EVENT_RX_STARTED:
+      puts("Data reception started");
+      break;
 
-/*     case NETDEV_EVENT_RX_COMPLETE: */
-/*       len = dev->driver->recv(dev, NULL, 0, 0); */
-/*       dev->driver->recv(dev, message, len, &packet_info); */
-/*       printf("{Payload: \"%s\" (%d bytes), RSSI: %i, SNR: %i, TOA: %" PRIu32 */
-/*              "}\n", */
-/*              message, (int)len, packet_info.rssi, (int)packet_info.snr, */
-/*              sx128x_get_time_on_air((const sx128x_t *)dev, len)); */
-/*       break; */
+    case NETDEV_EVENT_RX_COMPLETE:
+      len = dev->driver->recv(dev, NULL, 0, 0);
+      dev->driver->recv(dev, message, len, &packet_info);
+      /* printf("{Payload: \"%s\" (%d bytes), RSSI: %i, SNR: %i, TOA: %" PRIu32 */
+      /*        "}\n", */
+      /*        message, (int)len, packet_info.rssi, (int)packet_info.snr, */
+      /*        sx128x_get_time_on_air((const sx128x_t *)dev, len)); */
+      break;
 
-/*     case NETDEV_EVENT_TX_COMPLETE: */
-/*       sx128x_set_sleep(&sx128x); */
-/*       puts("Transmission completed"); */
-/*       break; */
+    case NETDEV_EVENT_TX_COMPLETE:
+      sx128x_set_sleep(&sx128x);
+      puts("Transmission completed");
+      break;
 
-/*     case NETDEV_EVENT_CAD_DONE: */
-/*       break; */
+    case NETDEV_EVENT_CAD_DONE:
+      break;
 
-/*     case NETDEV_EVENT_TX_TIMEOUT: */
-/*       sx128x_set_sleep(&sx128x); */
-/*       break; */
+    case NETDEV_EVENT_TX_TIMEOUT:
+      sx128x_set_sleep(&sx128x);
+      break;
 
-/*     default: */
-/*       printf("Unexpected netdev event received: %d\n", event); */
-/*       break; */
-/*     } */
-/*   } */
-/* } */
+    default:
+      printf("Unexpected netdev event received: %d\n", event);
+      break;
+    }
+  }
+}
 
-/* void *_recv_thread(void *arg) { */
-/*   (void)arg; */
+void *_recv_thread(void *arg) {
+  (void)arg;
 
-/*   static msg_t _msg_q[SX128X_LORA_MSG_QUEUE]; */
-/*   msg_init_queue(_msg_q, SX128X_LORA_MSG_QUEUE); */
+  static msg_t _msg_q[SX128X_LORA_MSG_QUEUE];
+  msg_init_queue(_msg_q, SX128X_LORA_MSG_QUEUE);
 
-/*   while (1) { */
-/*     msg_t msg; */
-/*     msg_receive(&msg); */
-/*     if (msg.type == MSG_TYPE_ISR) { */
-/*       netdev_t *dev = msg.content.ptr; */
-/*       dev->driver->isr(dev); */
-/*     } else { */
-/*       puts("Unexpected msg type"); */
-/*     } */
-/*   } */
-/* } */
+  while (1) {
+    msg_t msg;
+    msg_receive(&msg);
+    if (msg.type == MSG_TYPE_ISR) {
+      netdev_t *dev = msg.content.ptr;
+      dev->driver->isr(dev);
+    } else {
+      puts("Unexpected msg type");
+    }
+  }
+}
 
 int main(void) {
   sx128x.params = sx128x_params[0];
@@ -578,19 +578,18 @@ int main(void) {
     return 1;
   }
 
-  /* netdev->event_callback = _event_cb; */
+  netdev->event_callback = _event_cb;
 
-  /* _recv_pid = */
-  /*     thread_create(stack, sizeof(stack), THREAD_PRIORITY_MAIN - 1, */
-  /*                   THREAD_CREATE_STACKTEST, _recv_thread, NULL, "recv_thread"); */
+  _recv_pid =
+      thread_create(stack, sizeof(stack), THREAD_PRIORITY_MAIN - 1,
+                    THREAD_CREATE_STACKTEST, _recv_thread, NULL, "recv_thread");
 
-  /* if (_recv_pid <= KERNEL_PID_UNDEF) { */
-  /*   puts("Creation of receiver thread failed"); */
-  /*   return 1; */
-  /* } */
+  if (_recv_pid <= KERNEL_PID_UNDEF) {
+    puts("Creation of receiver thread failed");
+    return 1;
+  }
 
   /* start the shell */
-  /* listen_cmd(0, NULL); */
   puts("Initialization successful - starting the shell now");
   char line_buf[SHELL_DEFAULT_BUFSIZE];
   shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);

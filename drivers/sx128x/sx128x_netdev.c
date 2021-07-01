@@ -87,10 +87,6 @@ static int _send(netdev_t *netdev, const iolist_t *iolist) {
     /* sx128x_set_tx_power(dev, 12); */
     /* sx128x_cmd_set_buffer_base_address(dev, 0, 0); */
 
-    sx128x_cmd_get_irq_status(dev);
-    sx128x_cmd_clear_irq_status(dev, 0xFFFF);
-    sx128x_cmd_set_dio_irq_params(dev, SX128X_IRQ_REG_TX_DONE, SX128X_IRQ_REG_RX_TX_TIMEOUT, 0);
-
     /* Write payload buffer */
     for (const iolist_t *iol = iolist; iol; iol = iol->iol_next) {
       if (iol->iol_len > 0) {
@@ -211,9 +207,9 @@ static void _isr(netdev_t *netdev) {
   sx128x_t *dev = (sx128x_t *)netdev;
 
   uint16_t interruptReg = sx128x_cmd_get_irq_status(dev);
+  sx128x_cmd_clear_irq_status(dev, SX128X_IRQ_REG_ALL);
 
-  if (interruptReg &
-      (SX128X_IRQ_REG_TX_DONE | SX128X_IRQ_REG_RX_DONE)) {
+  if (interruptReg & (SX128X_IRQ_REG_TX_DONE | SX128X_IRQ_REG_RX_DONE)) {
     _on_dio1_irq(dev);
   }
 
@@ -598,6 +594,7 @@ void _on_dio1_irq(void *arg) {
   case SX128X_RF_TX_RUNNING:
     switch (dev->settings.modem) {
     case SX128X_PACKET_TYPE_LORA:
+      sx128x_set_state(dev, SX128X_RF_IDLE);
       break;
     default:
       break;
